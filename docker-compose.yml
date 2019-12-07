@@ -1,7 +1,7 @@
 version: '3'
 services:
   notebook:
-    container_name: notebookDeepLearning
+    container_name: notebookDL
     labels:
       description: Python using Jupyter Notebooks
       name: Jupyter Notebook
