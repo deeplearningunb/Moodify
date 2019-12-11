@@ -1,51 +1,83 @@
-import spotipy
-import json
-import os
+import argparse
+import pprint
 import sys
-from spotipy.oauth2 import SpotifyClientCredentials
+import os
+import subprocess
+import json
+import spotipy
+import spotipy.util as util
+import pandas as pd
 
-CLIENT_ID = os.getenv('CLIENT_ID', '')
-CLIENT_SECRET = os.getenv('CLIENT_SECRET', '')
+from spotipy.oauth2 import SpotifyClientCredentials
 
 file_path = sys.argv[1] # File path to save results
 
-client_credentials_manager = SpotifyClientCredentials(
-    client_id=CLIENT_ID,
-    client_secret=CLIENT_SECRET
-)
 
-ids = []
-features = []
+client_credentials_manager = SpotifyClientCredentials('50a50036b8f74034bcb7a744d95b95c0', '82a1f398490f488c80f0e15c7b5086dc')
 
-while True:
-    searchQuery = input().split(":")
 
-    if searchQuery[0] == "0":
-        break
+def get_playlist_content(username, playlist_id, sp):
+    offset = 0
+    songs = []
+    while True:
+        content = sp.user_playlist_tracks(username, playlist_id, fields=None, limit=100, offset=offset, market=None)
+        songs += content['items']
+        if content['next'] is not None:
+            offset += 100
+        else:
+            break
 
-    else:
-        sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+    with open('{}-{}'.format(username, playlist_id), 'w') as outfile:
+        json.dump(songs, outfile)
 
-        searchResults = sp.user_playlist_tracks(searchQuery[2], searchQuery[4], fields='items')
 
-        for item in searchResults["items"]:
-            print(item['track']['id'])
-            ids.append(item["track"]["id"])
+def get_playlist_audio_features(username, playlist_id, sp):
+    offset = 0
+    songs = []
+    items = []
+    ids = []
+    while True:
+        content = sp.user_playlist_tracks(username, playlist_id, fields=None, limit=100, offset=offset, market=None)
+        songs += content['items']
+        if content['next'] is not None:
+            offset += 100
+        else:
+            break
 
-ids_set = set(ids)
-print('-------------------')
-print(ids_set)
-try:
-    ids_set.remove(None)
-except:
-    pass
+    for i in songs:
+        ids.append(i['track']['id'])
 
-for item in ids_set:
-    print(item)
-    features.append(sp.audio_features(item))
+    index = 0
+    audio_features = []
+    while index < len(ids):
+        audio_features += sp.audio_features(ids[index:index + 50])
+        index += 50
 
-print('-------------------')
+    features_list = []
+    for features in audio_features:
+        features_list.append([features['energy'], features['liveness'],
+                              features['tempo'], features['speechiness'],
+                              features['acousticness'], features['instrumentalness'],
+                              features['time_signature'], features['danceability'],
+                              features['key'], features['duration_ms'],
+                              features['loudness'], features['valence'],
+                              features['mode'], features['type'],
+                              features['uri']])
 
-with open(file_path, 'w') as f:
-    json.dump(features, f, indent=2)
-    print('FINISH')
+    df = pd.DataFrame(features_list, columns=['energy', 'liveness',
+                                              'tempo', 'speechiness',
+                                              'acousticness', 'instrumentalness',
+                                              'time_signature', 'danceability',
+                                              'key', 'duration_ms', 'loudness',
+                                              'valence', 'mode', 'type', 'uri'])
+    df.to_csv('{}-{}.csv'.format(username, playlist_id), index=False)
+
+
+def get_user_playlist(username, sp):
+    playlists = sp.user_playlists(username)
+    for playlist in playlists['items']:
+        print("Name: {}, Number of songs: {}, Playlist ID: {} ".
+              format(playlist['name'].encode('utf8'),
+                     playlist['tracks']['total'],
+                     playlist['id']))
+
