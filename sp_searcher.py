@@ -13,7 +13,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 file_path = sys.argv[1] # File path to save results
 
 
-client_credentials_manager = SpotifyClientCredentials('50a50036b8f74034bcb7a744d95b95c0', '82a1f398490f488c80f0e15c7b5086dc')
+client_credentials_manager = SpotifyClientCredentials()
 
 
 def get_playlist_content(username, playlist_id, sp):
