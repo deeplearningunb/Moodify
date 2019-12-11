@@ -16,6 +16,9 @@ with open('./refined/love.json', 'r') as f:
 with open('./refined/happy.json', 'r') as f:
     happy = json.load(f)
 
+with open('./refined/optimistic.json', 'r') as f:
+    optimistic = json.load(f)
+
 with open('./dataset.csv', 'w') as f:
     print('CSV START')
     writer = csv.DictWriter(f, fieldnames=columns)
@@ -27,6 +30,9 @@ with open('./dataset.csv', 'w') as f:
         if item:
             writer.writerow(item)
     for item in love:
+        if item:
+            writer.writerow(item)
+    for item in optimistic:
         if item:
             writer.writerow(item)
 
